@@ -1,0 +1,30 @@
+meta {
+  name: 11 Add Funds
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/accounts/{{accountA}}/funds
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-api-key: {{apiKey}}
+  Idempotency-Key: fund-001
+}
+
+body:json {
+  {
+    "amount": 10
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body?.transfer?.id) {
+    bru.setEnvVar("transferId", body.transfer.id);
+  }
+}

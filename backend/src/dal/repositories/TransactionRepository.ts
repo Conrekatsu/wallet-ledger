@@ -22,47 +22,63 @@ export class TransactionRepository {
   constructor(private readonly db: Queryable = pool) {}
 
   async create(input: CreateTransactionInput): Promise<SerializedTransaction> {
-    const result = await this.db.query<TransactionRow>(
-      `INSERT INTO transfers (from_account_id, to_account_id, amount, idempotency_key)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at`,
-      [input.fromAccountId, input.toAccountId, input.amount, input.idempotencyKey]
-    );
+    try {
+      const result = await this.db.query<TransactionRow>(
+        `INSERT INTO transfers (from_account_id, to_account_id, amount, idempotency_key)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at`,
+        [input.fromAccountId, input.toAccountId, input.amount, input.idempotencyKey]
+      );
 
-    return Transaction.fromRow(result.rows[0]).serialize();
+      return Transaction.fromRow(result.rows[0]).serialize();
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateStatus(id: string, status: TransactionStatus): Promise<SerializedTransaction | null> {
-    const result = await this.db.query<TransactionRow>(
-      `UPDATE transfers
-       SET status = $2, updated_at = NOW()
-       WHERE id = $1
-       RETURNING id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at`,
-      [id, status]
-    );
+    try {
+      const result = await this.db.query<TransactionRow>(
+        `UPDATE transfers
+         SET status = $2, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at`,
+        [id, status]
+      );
 
-    return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+      return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findByIdempotencyKey(idempotencyKey: string): Promise<SerializedTransaction | null> {
-    const result = await this.db.query<TransactionRow>(
-      `SELECT id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at
-       FROM transfers
-       WHERE idempotency_key = $1`,
-      [idempotencyKey]
-    );
+    try {
+      const result = await this.db.query<TransactionRow>(
+        `SELECT id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at
+         FROM transfers
+         WHERE idempotency_key = $1`,
+        [idempotencyKey]
+      );
 
-    return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+      return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<SerializedTransaction | null> {
-    const result = await this.db.query<TransactionRow>(
-      `SELECT id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at
-       FROM transfers
-       WHERE id = $1`,
-      [id]
-    );
+    try {
+      const result = await this.db.query<TransactionRow>(
+        `SELECT id, from_account_id, to_account_id, amount, status, idempotency_key, created_at, updated_at
+         FROM transfers
+         WHERE id = $1`,
+        [id]
+      );
 
-    return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+      return result.rows[0] ? Transaction.fromRow(result.rows[0]).serialize() : null;
+    } catch (error) {
+      throw error;
+    }
   }
 }

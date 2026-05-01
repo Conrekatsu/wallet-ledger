@@ -1,0 +1,15 @@
+meta {
+  name: 07 Get Account A Balance
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/accounts/{{accountA}}/balance
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}

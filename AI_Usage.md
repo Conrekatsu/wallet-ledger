@@ -3,11 +3,13 @@
 ## Entry 1: Initial Project Scaffold
 
 ### Prompts used
-```Set up a Vite-based full-stack starter project.
+```
+Set up a Vite-based full-stack starter project.
 Structure: use Docker to run all services and add a Makefile command `make development-setup` to build and start frontend + backend and run DB migrations.
 Backend: Node.js (Express) + PostgreSQL, JWT auth scaffold with bcrypt, TypeScript.
 Frontend: React + TypeScript.
-Testing: include baseline e2e and unit tests for the initial setup.```
+Testing: include baseline e2e and unit tests for the initial setup.
+```
 
 ### Where AI helped
 - Generated monorepo structure with frontend, backend, Docker, and Makefile automation.
@@ -34,7 +36,9 @@ Testing: include baseline e2e and unit tests for the initial setup.```
 ## Entry 3: Move to Integration-Test Style
 
 ### Prompts used
-```change backend tests to be more of an integration_test style instead of separate handler/controller unit files```
+```
+change backend tests to be more of an integration_test style instead of separate handler/controller unit files
+```
 
 ### Where AI helped
 - Reworked tests to follow route -> handler -> controller execution.

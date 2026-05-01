@@ -1,0 +1,16 @@
+meta {
+  name: 04 User
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/auth/user
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+  Authorization: Bearer {{token}}
+}

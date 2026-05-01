@@ -11,7 +11,7 @@ export const handlers = [
     HttpResponse.json({ token: 'mock-token', user: mockUser }, { status: 201 })
   ),
 
-  http.get('http://localhost/api/auth/me', () =>
+  http.get('http://localhost/api/auth/user', () =>
     HttpResponse.json({ user: mockUser })
   ),
 ];

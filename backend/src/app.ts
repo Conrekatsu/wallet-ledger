@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth';
 import transactionRoutes from './routes/transactions';
 import accountRoutes from './routes/accounts';
+import { logger } from './lib/logger';
 import { apiKeyAuth } from './middleware/apiKeyAuth';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -12,6 +13,18 @@ let inFlightRequests = 0;
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }));
 app.use(express.json());
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    logger.info('HTTP request completed', {
+      method: req.method,
+      path: req.originalUrl,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
+  });
+  next();
+});
 app.use((req, res, next) => {
   if (isShuttingDown) {
     res.setHeader('Connection', 'close');

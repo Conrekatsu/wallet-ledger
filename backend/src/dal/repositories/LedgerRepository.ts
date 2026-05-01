@@ -1,4 +1,5 @@
 import pool from '../../db/pool';
+import { asAppError } from '../../lib/appError';
 import {
   CreateLedgerEntryInput,
   LedgerEntry,
@@ -23,23 +24,27 @@ export class LedgerRepository {
     debit: SerializedLedgerEntry;
     credit: SerializedLedgerEntry;
   } | null> {
-    const result = await this.db.query<LedgerRow>(
-      `SELECT id, account_id, transfer_id, amount, type, created_at, updated_at
-       FROM ledger_entries
-       WHERE transfer_id = $1`,
-      [transactionId]
-    );
+    try {
+      const result = await this.db.query<LedgerRow>(
+        `SELECT id, account_id, transfer_id, amount, type, created_at, updated_at
+         FROM ledger_entries
+         WHERE transfer_id = $1`,
+        [transactionId]
+      );
 
-    const debitRow = result.rows.find((row) => row.type === 'debit');
-    const creditRow = result.rows.find((row) => row.type === 'credit');
-    if (!debitRow || !creditRow) {
-      return null;
+      const debitRow = result.rows.find((row) => row.type === 'debit');
+      const creditRow = result.rows.find((row) => row.type === 'credit');
+      if (!debitRow || !creditRow) {
+        return null;
+      }
+
+      return {
+        debit: LedgerEntry.fromRow(debitRow).serialize(),
+        credit: LedgerEntry.fromRow(creditRow).serialize(),
+      };
+    } catch (error) {
+      throw error;
     }
-
-    return {
-      debit: LedgerEntry.fromRow(debitRow).serialize(),
-      credit: LedgerEntry.fromRow(creditRow).serialize(),
-    };
   }
 
   async createTransferEntries(input: {
@@ -48,34 +53,42 @@ export class LedgerRepository {
     transactionId: string;
     amount: number;
   }): Promise<{ debit: SerializedLedgerEntry; credit: SerializedLedgerEntry }> {
-    const result = await this.db.query<LedgerRow>(
-      `INSERT INTO ledger_entries (account_id, transfer_id, amount, type)
-       VALUES ($1, $3, -$4, 'debit'),
-              ($2, $3, $4, 'credit')
-       RETURNING id, account_id, transfer_id, amount, type, created_at, updated_at`,
-      [input.fromAccountId, input.toAccountId, input.transactionId, input.amount]
-    );
+    try {
+      const result = await this.db.query<LedgerRow>(
+        `INSERT INTO ledger_entries (account_id, transfer_id, amount, type)
+         VALUES ($1, $3, -($4::numeric), 'debit'),
+                ($2, $3, $4::numeric, 'credit')
+         RETURNING id, account_id, transfer_id, amount, type, created_at, updated_at`,
+        [input.fromAccountId, input.toAccountId, input.transactionId, input.amount]
+      );
 
-    const debitRow = result.rows.find((row) => row.type === 'debit');
-    const creditRow = result.rows.find((row) => row.type === 'credit');
-    if (!debitRow || !creditRow || result.rows.length !== 2) {
-      throw new Error('Expected exactly 2 ledger entries for transfer');
+      const debitRow = result.rows.find((row) => row.type === 'debit');
+      const creditRow = result.rows.find((row) => row.type === 'credit');
+      if (!debitRow || !creditRow || result.rows.length !== 2) {
+      throw asAppError(500, 'Expected exactly 2 ledger entries for transfer');
+      }
+
+      return {
+        debit: LedgerEntry.fromRow(debitRow).serialize(),
+        credit: LedgerEntry.fromRow(creditRow).serialize(),
+      };
+    } catch (error) {
+      throw error;
     }
-
-    return {
-      debit: LedgerEntry.fromRow(debitRow).serialize(),
-      credit: LedgerEntry.fromRow(creditRow).serialize(),
-    };
   }
 
   async create(input: CreateLedgerEntryInput): Promise<SerializedLedgerEntry> {
-    const result = await this.db.query<LedgerRow>(
-      `INSERT INTO ledger_entries (account_id, transfer_id, amount, type)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, account_id, transfer_id, amount, type, created_at, updated_at`,
-      [input.accountId, input.transactionId, input.amount, input.type]
-    );
+    try {
+      const result = await this.db.query<LedgerRow>(
+        `INSERT INTO ledger_entries (account_id, transfer_id, amount, type)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, account_id, transfer_id, amount, type, created_at, updated_at`,
+        [input.accountId, input.transactionId, input.amount, input.type]
+      );
 
-    return LedgerEntry.fromRow(result.rows[0]).serialize();
+      return LedgerEntry.fromRow(result.rows[0]).serialize();
+    } catch (error) {
+      throw error;
+    }
   }
 }

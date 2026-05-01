@@ -1,0 +1,25 @@
+meta {
+  name: 09 Replay Transfer
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/transfers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-api-key: {{apiKey}}
+  Idempotency-Key: idem-001
+}
+
+body:json {
+  {
+    "fromAccountId": "{{accountA}}",
+    "toAccountId": "{{accountB}}",
+    "amount": 25
+  }
+}

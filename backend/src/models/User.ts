@@ -1,7 +1,6 @@
 export interface SerializedUser {
   id: string;
   email: string;
-  apiKey?: string;
   name: string | null;
   createdAt: Date;
 }
@@ -13,7 +12,6 @@ export interface SerializedUserWithPassword extends SerializedUser {
 export class User {
   id: string;
   email: string;
-  apiKey: string | null;
   password: string;
   name: string | null;
   createdAt: Date;
@@ -21,14 +19,12 @@ export class User {
   constructor(data: {
     id: string;
     email: string;
-    apiKey: string | null;
     password: string;
     name: string | null;
     createdAt: Date;
   }) {
     this.id = data.id;
     this.email = data.email;
-    this.apiKey = data.apiKey;
     this.password = data.password;
     this.name = data.name;
     this.createdAt = data.createdAt;
@@ -37,7 +33,7 @@ export class User {
   static fromRow(row: {
     id: string;
     email: string;
-    api_key_hash: string;
+    api_key: string | null;
     password: string;
     name: string | null;
     created_at: Date;
@@ -45,7 +41,6 @@ export class User {
     return new User({
       id: row.id,
       email: row.email,
-      apiKey: row.api_key_hash,
       password: row.password,
       name: row.name,
       createdAt: row.created_at,
@@ -55,14 +50,12 @@ export class User {
   static fromSafeRow(row: {
     id: string;
     email: string;
-    api_key?: string;
     name: string | null;
     created_at: Date;
   }): User {
     return new User({
       id: row.id,
       email: row.email,
-      apiKey: row.api_key ?? null,
       password: '',
       name: row.name,
       createdAt: row.created_at,
@@ -73,7 +66,6 @@ export class User {
     return {
       id: this.id,
       email: this.email,
-      ...(this.apiKey ? { apiKey: this.apiKey } : {}),
       name: this.name,
       createdAt: this.createdAt,
     };

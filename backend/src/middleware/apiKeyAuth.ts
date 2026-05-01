@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import crypto from 'crypto';
 import { UserRepository } from '../dal';
 
 const API_KEY_HEADER = 'x-api-key';
@@ -19,19 +18,15 @@ export async function apiKeyAuth(req: Request, res: Response, next: NextFunction
       return;
     }
 
-    const hashedKey = hashApiKey(receivedKey);
-    const user = await users.findSafeByApiKey(hashedKey);
+    const user = await users.findSafeByApiKey(receivedKey);
     if (!user) {
       res.status(401).json({ error: 'Missing or invalid API key' });
       return;
     }
 
+    req.user = { userId: user.id, email: user.email };
     next();
   } catch (error) {
     next(error);
   }
-}
-
-function hashApiKey(apiKey: string): string {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
 }

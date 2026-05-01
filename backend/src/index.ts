@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import app, { beginShutdown, getInFlightRequests } from './app';
 import pool from './db/pool';
+import { logger } from './lib/logger';
+
 
 const PORT = process.env.PORT ?? 4000;
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000);
 
 const server = app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  logger.info('Backend server started', { port: PORT });
 });
 
 let isShuttingDown = false;
@@ -19,7 +21,9 @@ async function waitForInFlightRequestsToDrain(timeoutMs: number) {
   const startedAt = Date.now();
   while (getInFlightRequests() > 0) {
     if (Date.now() - startedAt >= timeoutMs) {
-      console.warn(`Shutdown timeout reached with ${getInFlightRequests()} request(s) still in-flight.`);
+      logger.warn('Shutdown timeout reached before draining in-flight requests', {
+        inFlightRequests: getInFlightRequests(),
+      });
       break;
     }
     await sleep(100);
@@ -41,17 +45,17 @@ function closeServer() {
 async function shutdown(signal: NodeJS.Signals) {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  console.log(`Received ${signal}. Starting graceful shutdown.`);
+  logger.info('Received shutdown signal', { signal });
   beginShutdown();
 
   try {
     await waitForInFlightRequestsToDrain(SHUTDOWN_TIMEOUT_MS);
     await closeServer();
     await pool.end();
-    console.log('Graceful shutdown complete.');
+    logger.info('Graceful shutdown complete');
     process.exit(0);
   } catch (error) {
-    console.error('Graceful shutdown failed:', error);
+    logger.error('Graceful shutdown failed', error);
     process.exit(1);
   }
 }

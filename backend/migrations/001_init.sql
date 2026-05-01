@@ -4,8 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS users (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT NOT NULL UNIQUE,
-  api_key    TEXT UNIQUE,
-  api_key_hash TEXT UNIQUE,
+  api_key    TEXT,
   password   TEXT NOT NULL,
   name       TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -61,9 +60,4 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_transfers_status ON transfers(status);
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_account_id ON ledger_entries(account_id);
 
--- Backward-compatible schema hardening for older DBs
-ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key_hash TEXT;
-UPDATE users SET api_key_hash = api_key WHERE api_key_hash IS NULL AND api_key IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS users_api_key_hash_unique_idx ON users(api_key_hash);
 
-ALTER TABLE accounts DROP CONSTRAINT IF EXISTS accounts_user_id_id_key;

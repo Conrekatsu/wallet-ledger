@@ -1,7 +1,6 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import app from '../app';
 import pool from '../db/pool';
 
@@ -26,7 +25,7 @@ describe('POST /api/auth/register', () => {
   const dbUser = {
     id: 1,
     email: 'user@test.com',
-    api_key_hash: 'hashed_api_key',
+    api_key: 'wk_test_key',
     name: 'Test',
     created_at: new Date().toISOString(),
   };
@@ -53,7 +52,7 @@ describe('POST /api/auth/register', () => {
       .send({ password: 'pass123' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('email and password required');
+    expect(res.body.error).toBe('Something went wrong');
   });
 
   it('400 when password is missing', async () => {
@@ -73,7 +72,7 @@ describe('POST /api/auth/register', () => {
       .send({ email: 'user@test.com', password: 'pass123' });
 
     expect(res.status).toBe(409);
-    expect(res.body.error).toBe('Email already registered');
+    expect(res.body.error).toBe('Something went wrong');
   });
 
   it('normalises email to lowercase before insert', async () => {
@@ -96,7 +95,7 @@ describe('POST /api/auth/login', () => {
   const dbUser = {
     id: 2,
     email: 'login@test.com',
-    api_key_hash: 'hashed_api_key',
+    api_key: 'wk_login_key',
     name: 'Login User',
     password: 'hashed-pw',
     created_at: new Date().toISOString(),
@@ -140,7 +139,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'nobody@test.com', password: 'pass123' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Invalid credentials');
+    expect(res.body.error).toBe('Something went wrong');
   });
 
   it('401 when password is wrong', async () => {
@@ -152,15 +151,14 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'login@test.com', password: 'wrong-pass' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Invalid credentials');
+    expect(res.body.error).toBe('Something went wrong');
   });
 });
 
-// ── GET /api/auth/me ──────────────────────────────────────────────────────────
+// ── GET /api/auth/user ────────────────────────────────────────────────────────
 
-describe('GET /api/auth/me', () => {
+describe('GET /api/auth/user', () => {
   const apiKey = 'wk_test_key';
-  const apiKeyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
 
   function validAuthHeader(): string {
     const token = jwt.sign({ userId: 3, email: 'me@test.com' }, process.env.JWT_SECRET!);
@@ -173,7 +171,7 @@ describe('GET /api/auth/me', () => {
     mockQuery.mockResolvedValueOnce({ rows: [authUser] });
 
     const res = await request(app)
-      .get('/api/auth/me')
+      .get('/api/auth/user')
       .set('Authorization', validAuthHeader())
       .set('x-api-key', apiKey);
 
@@ -181,13 +179,13 @@ describe('GET /api/auth/me', () => {
     expect(res.body.user.email).toBe('me@test.com');
     expect(mockQuery).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('WHERE api_key_hash = $1 OR api_key = $1'),
-      [apiKeyHash]
+      expect.stringContaining('WHERE api_key = $1'),
+      [apiKey]
     );
   });
 
   it('401 with no Authorization header', async () => {
-    const res = await request(app).get('/api/auth/me');
+    const res = await request(app).get('/api/auth/user');
     expect(res.status).toBe(401);
   });
 
@@ -196,7 +194,7 @@ describe('GET /api/auth/me', () => {
       rows: [{ id: 3, email: 'me@test.com', name: 'Me', created_at: new Date().toISOString() }],
     });
     const res = await request(app)
-      .get('/api/auth/me')
+      .get('/api/auth/user')
       .set('Authorization', 'Bearer bad.token.here')
       .set('x-api-key', apiKey);
     expect(res.status).toBe(401);
@@ -209,7 +207,7 @@ describe('GET /api/auth/me', () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
-      .get('/api/auth/me')
+      .get('/api/auth/user')
       .set('Authorization', validAuthHeader())
       .set('x-api-key', apiKey);
 

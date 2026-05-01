@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from '../dal';
+import { asAppError } from '../lib/appError';
 
 export interface RegisterInput {
   email?: string;
@@ -20,15 +21,14 @@ export async function register(input: RegisterInput) {
   const { email, password, name } = input;
 
   if (!email || !password) {
-    throw new Error('email and password required');
+    throw asAppError(400, 'email and password required');
   }
 
   const hashed = await bcrypt.hash(password, 12);
   const apiKey = createApiKey();
-  const apiKeyHash = hashApiKey(apiKey);
   const userRecord = await users.create({
     email: email.toLowerCase().trim(),
-    apiKey: apiKeyHash,
+    apiKey,
     password: hashed,
     name: name ?? null,
   });
@@ -48,19 +48,18 @@ export async function login(input: LoginInput) {
   const { email, password } = input;
 
   if (!email || !password) {
-    throw new Error('email and password required');
+    throw asAppError(400, 'email and password required');
   }
 
   const user = await users.findByEmail(email.toLowerCase().trim());
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw new Error('Invalid credentials');
+    throw asAppError(401, 'Invalid credentials');
   }
 
   const token = signToken(user.id, user.email);
   const safeUser = {
     id: user.id,
     email: user.email,
-    apiKey: user.apiKey,
     name: user.name,
     created_at: user.createdAt,
   };
@@ -68,10 +67,10 @@ export async function login(input: LoginInput) {
   return { token, user: safeUser };
 }
 
-export async function me(userId: string) {
+export async function user(userId: string) {
   const user = await users.findSafeById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw asAppError(404, 'User not found');
   }
 
   return { user };
@@ -88,8 +87,4 @@ function signToken(userId: string | number, email: string): string {
 
 function createApiKey(): string {
   return `wk_${crypto.randomBytes(24).toString('hex')}`;
-}
-
-function hashApiKey(apiKey: string): string {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
 }

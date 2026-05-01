@@ -5,6 +5,7 @@ import {
   TransactionRepository,
   withTransaction,
 } from '../dal';
+import { asAppError } from '../lib/appError';
 import { SerializedLedgerEntry } from '../models/LedgerEntry';
 import { SerializedTransaction } from '../models/Transaction';
 
@@ -28,10 +29,10 @@ export interface MoneyMovementResult {
 export class MoneyMovementService {
   async moveMoney(input: MoneyMovementInput): Promise<MoneyMovementResult> {
     if (input.fromAccountId === input.toAccountId) {
-      throw new Error('Source and destination accounts must differ');
+      throw asAppError(400, 'Source and destination accounts must differ');
     }
     if (!Number.isInteger(input.amount) || input.amount <= 0) {
-      throw new Error('Amount must be a positive integer');
+      throw asAppError(400, 'Amount must be a positive integer');
     }
 
     return withTransaction(async (client) => {
@@ -43,24 +44,24 @@ export class MoneyMovementService {
       const fromAccount = await accounts.findById(input.fromAccountId);
       const toAccount = await accounts.findById(input.toAccountId);
       if (!fromAccount || !toAccount) {
-        throw new Error('One or both accounts do not exist');
+        throw asAppError(400, 'One or both accounts do not exist');
       }
       if (fromAccount.userId !== input.requesterUserId) {
-        throw new Error('Cannot move money from an account you do not own');
+        throw asAppError(400, 'Cannot move money from an account you do not own');
       }
 
       const existing = await transactions.findByIdempotencyKey(input.idempotencyKey);
       if (existing) {
         if (existing.status === 'pending' || existing.status === 'processing') {
-          throw new Error('Idempotent transaction is still in progress');
+          throw asAppError(409, 'Idempotent transaction is still in progress');
         }
         if (existing.status === 'failed') {
-          throw new Error('Idempotent transaction already failed');
+          throw asAppError(409, 'Idempotent transaction already failed');
         }
 
         const existingLedgerEntries = await ledger.findTransferEntriesByTransactionId(existing.id);
         if (!existingLedgerEntries) {
-          throw new Error('Existing transaction is missing ledger entries');
+          throw asAppError(500, 'Existing transaction is missing ledger entries');
         }
         await auditLogs.recordTransfer({
           actorUserId: input.requesterUserId,
@@ -95,7 +96,7 @@ export class MoneyMovementService {
 
       const completed = await transactions.updateStatus(created.id, 'completed');
       if (!completed) {
-        throw new Error('Unable to update transaction status');
+        throw asAppError(500, 'Unable to update transaction status');
       }
 
       await auditLogs.recordTransfer({

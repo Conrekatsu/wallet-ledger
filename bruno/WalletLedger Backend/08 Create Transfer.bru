@@ -1,0 +1,32 @@
+meta {
+  name: 08 Create Transfer
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/transfers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-api-key: {{apiKey}}
+  Idempotency-Key: idem-001
+}
+
+body:json {
+  {
+    "fromAccountId": "{{accountA}}",
+    "toAccountId": "{{accountB}}",
+    "amount": 25
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body?.transfer?.id) {
+    bru.setEnvVar("transferId", body.transfer.id);
+  }
+}

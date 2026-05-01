@@ -5,10 +5,9 @@ services:
     image: postgres:16-alpine
     container_name: hw_postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-hwuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hwpassword}
-      POSTGRES_DB: ${POSTGRES_DB:-hwdb}
+    env_file:
+      - path: ./.env
+        required: false
     ports:
       - '5432:5432'
     volumes:
@@ -25,6 +24,9 @@ services:
       dockerfile: Dockerfile
     container_name: hw_backend
     restart: unless-stopped
+    env_file:
+      - path: ./.env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,13 +34,12 @@ services:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgres://${POSTGRES_USER:-hwuser}:${POSTGRES_PASSWORD:-hwpassword}@postgres:5432/${POSTGRES_DB:-hwdb}
-      JWT_SECRET: ${JWT_SECRET:-changeme_in_production}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      
     ports:
       - '4000:4000'
     volumes:
-      - ./backend/src:/app/src
-      - ./backend/migrations:/app/migrations
+      - ./backend/src:/src
+      - ./backend/migrations:/migrations
     command: npm run dev
 
   frontend:
@@ -47,6 +48,9 @@ services:
       dockerfile: Dockerfile
     container_name: hw_frontend
     restart: unless-stopped
+    env_file:
+      - path: ./.env
+        required: false
     depends_on:
       - backend
     environment:

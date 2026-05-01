@@ -1,13 +1,6 @@
 import { AccountRepository, TransactionRepository } from '../dal';
+import { asAppError } from '../lib/appError';
 import { MoneyMovementService } from '../services/MoneyMovementService';
-
-export interface MoveMoneyInput {
-  requesterUserId?: string;
-  fromAccountId?: string;
-  toAccountId?: string;
-  amount?: number;
-  idempotencyKey?: string;
-}
 
 const moneyMovement = new MoneyMovementService();
 const accounts = new AccountRepository();
@@ -26,36 +19,16 @@ export interface GetTransferStatusInput {
   transferId?: string;
 }
 
-export async function moveMoney(input: MoveMoneyInput) {
-  const { requesterUserId, fromAccountId, toAccountId, amount, idempotencyKey } = input;
-
-  if (!requesterUserId) {
-    throw new Error('Unauthorized');
-  }
-
-  if (!fromAccountId || !toAccountId || amount === undefined || amount === null || !idempotencyKey) {
-    throw new Error('fromAccountId, toAccountId, amount, and idempotencyKey are required');
-  }
-
-  return moneyMovement.moveMoney({
-    requesterUserId,
-    fromAccountId,
-    toAccountId,
-    amount,
-    idempotencyKey,
-  });
-}
-
 export async function createTransfer(input: CreateTransferInput) {
   const { requesterUserId, fromAccountId, toAccountId, amount, idempotencyKey } = input;
   if (!requesterUserId) {
-    throw new Error('Unauthorized');
+    throw asAppError(401, 'Unauthorized');
   }
   if (!idempotencyKey) {
-    throw new Error('Idempotency-Key header required');
+    throw asAppError(400, 'Idempotency-Key header required');
   }
   if (!fromAccountId || !toAccountId || amount === undefined || amount === null) {
-    throw new Error('fromAccountId, toAccountId, and amount are required');
+    throw asAppError(400, 'fromAccountId, toAccountId, and amount are required');
   }
 
   const result = await moneyMovement.moveMoney({
@@ -78,20 +51,20 @@ export async function createTransfer(input: CreateTransferInput) {
 export async function getTransferStatus(input: GetTransferStatusInput) {
   const { requesterUserId, transferId } = input;
   if (!requesterUserId) {
-    throw new Error('Unauthorized');
+    throw asAppError(401, 'Unauthorized');
   }
   if (!transferId) {
-    throw new Error('transferId required');
+    throw asAppError(400, 'transferId required');
   }
 
   const transfer = await transfers.findById(transferId);
   if (!transfer) {
-    throw new Error('Transfer not found');
+    throw asAppError(404, 'Transfer not found');
   }
 
   const fromAccount = await accounts.findById(transfer.fromAccountId);
   if (!fromAccount || fromAccount.userId !== requesterUserId) {
-    throw new Error('Forbidden');
+    throw asAppError(403, 'Forbidden');
   }
 
   return {

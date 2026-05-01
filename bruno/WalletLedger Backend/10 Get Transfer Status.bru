@@ -1,0 +1,15 @@
+meta {
+  name: 10 Get Transfer Status
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/transfers/{{transferId}}
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}

@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import crypto from 'crypto';
 const findSafeByApiKeyMock = jest.fn();
 
 jest.mock('../dal', () => ({
@@ -42,7 +41,18 @@ describe('apiKeyAuth middleware', () => {
     const { res, status } = makeRes();
     await apiKeyAuth(req, res, next);
     expect(status).toHaveBeenCalledWith(401);
-    const expectedHash = crypto.createHash('sha256').update(key).digest('hex');
-    expect(findSafeByApiKeyMock).toHaveBeenCalledWith(expectedHash);
+    expect(findSafeByApiKeyMock).toHaveBeenCalledWith(key);
+  });
+
+  it('attaches request user when api key is valid', async () => {
+    const key = 'wk_valid';
+    findSafeByApiKeyMock.mockResolvedValue({ id: 'u1', email: 'u1@test.com', name: 'U1', createdAt: new Date() });
+    const req = { path: '/accounts', header: jest.fn().mockReturnValue(key) } as unknown as Request;
+    const { res } = makeRes();
+
+    await apiKeyAuth(req, res, next);
+
+    expect((req as any).user).toEqual({ userId: 'u1', email: 'u1@test.com' });
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });

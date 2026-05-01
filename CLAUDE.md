@@ -44,7 +44,7 @@ Three-tier monorepo: React frontend → Express backend → PostgreSQL, all cont
 
 **Backend** (`backend/src/`):
 - `index.ts` — Express app setup, CORS, routes mount
-- `routes/auth.ts` — `POST /register`, `POST /login`, `GET /me`
+- `routes/auth.ts` — `POST /register`, `POST /login`, `GET /user`
 - `middleware/auth.ts` — JWT verification; attaches `req.user = { userId, email }`
 - `db/pool.ts` — single `pg.Pool` export used throughout
 - `db/migrate.ts` — runs SQL files from `migrations/` in filename order on startup
@@ -78,5 +78,5 @@ Copy `.env.example` → `.env` before first run. Key vars:
 ## Key Notes
 
 - Backend has no linter configured; frontend uses ESLint 8 with React + TypeScript rules.
-- `refresh_tokens` table exists but refresh token rotation is not implemented — `GET /me` is the only protected endpoint.
+- `refresh_tokens` table exists but refresh token rotation is not implemented — `GET /user` is the only protected endpoint.
 - TypeScript strict mode on both ends.

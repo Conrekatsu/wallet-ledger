@@ -49,7 +49,7 @@ make clean           # full teardown including volumes
 ├── backend/
 │   ├── src/
 │   │   ├── index.ts          # Express app, CORS, route mounting
-│   │   ├── routes/auth.ts    # POST /register, POST /login, GET /me
+│   │   ├── routes/auth.ts    # POST /register, POST /login, GET /user
 │   │   ├── middleware/auth.ts # JWT verification
 │   │   └── db/
 │   │       ├── pool.ts       # pg.Pool singleton

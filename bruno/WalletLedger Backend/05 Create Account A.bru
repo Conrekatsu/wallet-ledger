@@ -1,0 +1,22 @@
+meta {
+  name: 05 Create Account A
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/accounts
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body?.account?.id) {
+    bru.setEnvVar("accountA", body.account.id);
+  }
+}

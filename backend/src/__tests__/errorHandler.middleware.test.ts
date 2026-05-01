@@ -8,17 +8,17 @@ function makeRes(): { res: Response; status: jest.Mock; json: jest.Mock } {
 }
 
 describe('errorHandler middleware', () => {
-  it('serializes Error instances with their message', () => {
+  it('returns a generic message for Error instances', () => {
     const { res, status, json } = makeRes();
     errorHandler(new Error('boom'), {} as Request, res, jest.fn());
     expect(status).toHaveBeenCalledWith(500);
-    expect(json).toHaveBeenCalledWith({ error: 'boom' });
+    expect(json).toHaveBeenCalledWith({ error: 'Something went wrong' });
   });
 
   it('falls back to generic message for non-error values', () => {
     const { res, status, json } = makeRes();
     errorHandler('not-an-error', {} as Request, res, jest.fn());
     expect(status).toHaveBeenCalledWith(500);
-    expect(json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    expect(json).toHaveBeenCalledWith({ error: 'Something went wrong' });
   });
 });
