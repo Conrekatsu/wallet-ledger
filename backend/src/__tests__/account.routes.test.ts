@@ -45,6 +45,9 @@ jest.mock('../dal', () => ({
     findSafeById: jest.fn(),
     findSafeByApiKey: findSafeByApiKeyMock,
   })),
+  AuditLogRepository: jest.fn(() => ({
+    listForUser: jest.fn(),
+  })),
 }));
 
 import app from '../app';

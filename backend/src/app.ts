@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth';
 import transactionRoutes from './routes/transactions';
 import accountRoutes from './routes/accounts';
+import auditRoutes from './routes/audit';
 import { logger } from './lib/logger';
 import { getMetricsSnapshot } from './lib/metrics';
 import { apiKeyAuth } from './middleware/apiKeyAuth';
@@ -60,6 +61,7 @@ app.get('/api/metrics', (_req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
+app.use('/api/audit', auditRoutes);
 app.use('/api/transfers', transactionRoutes);
 app.use(errorHandler);
 

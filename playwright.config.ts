@@ -13,7 +13,11 @@ export default defineConfig({
       cwd: '.',
       url: 'http://localhost:4000/api/health',
       env: {
-        DATABASE_URL: 'postgres://hwuser:hwpassword@localhost:5432/hwdb',
+        POSTGRES_HOST: 'localhost',
+        POSTGRES_PORT: '5432',
+        POSTGRES_USER: 'hwuser',
+        POSTGRES_PASSWORD: 'hwpassword',
+        POSTGRES_DB: 'hwdb',
         JWT_SECRET: 'e2e-test-secret',
         JWT_EXPIRES_IN: '7d',
       },

@@ -33,8 +33,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4000
-      DATABASE_URL: postgres://${POSTGRES_USER:-hwuser}:${POSTGRES_PASSWORD:-hwpassword}@postgres:5432/${POSTGRES_DB:-hwdb}
-      
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
     ports:
       - '4000:4000'
     volumes:

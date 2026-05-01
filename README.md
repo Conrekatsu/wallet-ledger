@@ -108,19 +108,28 @@ API-key endpoints (must include `x-api-key`):
 make up
 ```
 
-or locally:
+### Backend outside Docker
+
+Use this when Postgres is running locally or you only start the database container (`localhost:5432`) while running Node on the host or in WSL.
+
+1. Copy env template if needed: `cp .env.example .env` at the **repository root** (or maintain `backend/.env`).
+2. Point the app at your database. Outside Compose, use `POSTGRES_HOST=localhost` (not the Docker service name `postgres`). You can set `DATABASE_URL` or `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_DB`, and optional `POSTGRES_PASSWORD`, `POSTGRES_PORT`.
+3. Run migrations if the schema is not up to date: `cd backend && npm run migrate`.
+4. From `backend/`:
 
 ```bash
-cd backend
 npm run dev
 ```
 
-The transfer worker starts automatically when backend starts.
+The transfer worker starts automatically when the backend starts.
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |---|---|---|
+| `DATABASE_URL` | Full Postgres URL; when set, overrides `POSTGRES_*` | — |
+| `POSTGRES_HOST` | DB host (`localhost` when Node runs outside Compose; `postgres` in full stack Docker) | — |
+| `POSTGRES_PORT` | DB port | `5432` |
 | `POSTGRES_USER` | DB username | `hwuser` |
 | `POSTGRES_PASSWORD` | DB password | `hwpassword` |
 | `POSTGRES_DB` | DB name | `hwdb` |

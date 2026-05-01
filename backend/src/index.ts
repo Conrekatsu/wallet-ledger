@@ -5,7 +5,7 @@ import { logger } from './lib/logger';
 import { TransferWorker } from './workers';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
-if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
+// Database config is validated in db/pool.ts (DATABASE_URL or POSTGRES_* host/port).
 
 const PORT = process.env.PORT ?? 4000;
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000);
