@@ -1,7 +1,10 @@
-.PHONY: development-setup up down logs-backend logs-frontend migrate migrate-reset build build-backend build-frontend update-backend update-frontend clean test test-backend test-frontend test-e2e
+.PHONY: development-setup up down logs-backend logs-frontend migrate migrate-reset build build-backend build-frontend update-backend update-frontend clean test test-backend test-frontend test-e2e install-e2e-deps
 
 ENV_FILE := $(if $(wildcard .env),--env-file .env,)
 DC := docker compose $(ENV_FILE)
+
+# Matches @playwright/test major line; image bundles Chromium + OS libs (fixes Linux/WSL libnspr4.so).
+PW_RUNNER_IMAGE ?= mcr.microsoft.com/playwright:v1.59.1-jammy
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 development-setup:
@@ -76,8 +79,25 @@ test-backend:
 	cd backend && npm test
 
 test-frontend:
-	cd frontend && npm test
+	cd frontend && ([ -d node_modules/vitest ] || npm install) && npm test
 
-# Requires `make up` first
+# Requires stack on localhost — e.g. `make up` (postgres + backend + frontend).
+# On Linux/WSL, runs inside Playwright Docker image so Chromium has required OS libs
+# (avoids: libnspr4.so / chrome-headless-shell load errors). Override with SKIP_PLAYWRIGHT_DOCKER=1.
+# Native alternative (needs sudo once): make install-e2e-deps
 test-e2e:
-	npx playwright test
+	@HOST_OS="$$(uname -s 2>/dev/null || echo unknown)"; \
+	if [ "$${SKIP_PLAYWRIGHT_DOCKER:-}" != 1 ] && [ "$$HOST_OS" = Linux ] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
+		echo "[e2e] Using Docker $(PW_RUNNER_IMAGE) (set SKIP_PLAYWRIGHT_DOCKER=1 to use local Chromium)."; \
+		docker run --rm --init --network host \
+			-v "$(CURDIR):/work" \
+			-w /work \
+			-e HOME=/tmp/pw-home \
+			$(PW_RUNNER_IMAGE) \
+			bash -lc "mkdir -p /tmp/pw-home && npm install && npx playwright test"; \
+	else \
+		npx playwright test; \
+	fi
+
+install-e2e-deps:
+	npx playwright install-deps chromium

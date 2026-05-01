@@ -64,3 +64,4 @@ services:
 
 volumes:
   postgres_data:
+  frontend_node_modules:
