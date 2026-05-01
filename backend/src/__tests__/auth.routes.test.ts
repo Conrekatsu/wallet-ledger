@@ -52,7 +52,7 @@ describe('POST /api/auth/register', () => {
       .send({ password: 'pass123' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Something went wrong');
+    expect(res.body.error).toBe('email and password required');
   });
 
   it('400 when password is missing', async () => {
@@ -72,7 +72,7 @@ describe('POST /api/auth/register', () => {
       .send({ email: 'user@test.com', password: 'pass123' });
 
     expect(res.status).toBe(409);
-    expect(res.body.error).toBe('Something went wrong');
+    expect(res.body.error).toBe('Resource already exists');
   });
 
   it('normalises email to lowercase before insert', async () => {
@@ -139,7 +139,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'nobody@test.com', password: 'pass123' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Something went wrong');
+    expect(res.body.error).toBe('Invalid credentials');
   });
 
   it('401 when password is wrong', async () => {
@@ -151,7 +151,7 @@ describe('POST /api/auth/login', () => {
       .send({ email: 'login@test.com', password: 'wrong-pass' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Something went wrong');
+    expect(res.body.error).toBe('Invalid credentials');
   });
 });
 

@@ -6,6 +6,7 @@ export interface SerializedTransaction {
   toAccountId: string;
   amount: number;
   status: TransactionStatus;
+  lastError: string | null;
   idempotencyKey: string;
   createdAt: Date;
   updatedAt: Date;
@@ -17,6 +18,7 @@ export class Transaction {
   toAccountId: string;
   amount: number;
   status: TransactionStatus;
+  lastError: string | null;
   idempotencyKey: string;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +29,7 @@ export class Transaction {
     toAccountId: string;
     amount: number;
     status: TransactionStatus;
+    lastError: string | null;
     idempotencyKey: string;
     createdAt: Date;
     updatedAt: Date;
@@ -36,6 +39,7 @@ export class Transaction {
     this.toAccountId = data.toAccountId;
     this.amount = data.amount;
     this.status = data.status;
+    this.lastError = data.lastError;
     this.idempotencyKey = data.idempotencyKey;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
@@ -47,6 +51,7 @@ export class Transaction {
     to_account_id: string;
     amount: number;
     status: TransactionStatus;
+    last_error: string | null;
     idempotency_key: string;
     created_at: Date;
     updated_at: Date;
@@ -57,6 +62,7 @@ export class Transaction {
       toAccountId: row.to_account_id,
       amount: row.amount,
       status: row.status,
+      lastError: row.last_error,
       idempotencyKey: row.idempotency_key,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -70,6 +76,7 @@ export class Transaction {
       toAccountId: this.toAccountId,
       amount: this.amount,
       status: this.status,
+      lastError: this.lastError,
       idempotencyKey: this.idempotencyKey,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

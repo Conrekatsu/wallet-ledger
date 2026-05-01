@@ -2,13 +2,18 @@ import 'dotenv/config';
 import app, { beginShutdown, getInFlightRequests } from './app';
 import pool from './db/pool';
 import { logger } from './lib/logger';
+import { TransferWorker } from './workers';
 
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
+if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
 
 const PORT = process.env.PORT ?? 4000;
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000);
+const transferWorker = new TransferWorker();
 
 const server = app.listen(PORT, () => {
   logger.info('Backend server started', { port: PORT });
+  transferWorker.start();
 });
 
 let isShuttingDown = false;
@@ -50,6 +55,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   try {
     await waitForInFlightRequestsToDrain(SHUTDOWN_TIMEOUT_MS);
+    await transferWorker.stop();
     await closeServer();
     await pool.end();
     logger.info('Graceful shutdown complete');

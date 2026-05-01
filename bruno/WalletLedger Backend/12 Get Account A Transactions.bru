@@ -1,0 +1,15 @@
+meta {
+  name: 12 Get Account A Transactions
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/accounts/{{accountA}}/transactions
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}

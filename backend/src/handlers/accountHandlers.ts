@@ -37,3 +37,19 @@ export async function addFundsHandler(req: Request, res: Response, next: NextFun
     next(err);
   }
 }
+
+export async function getAccountTransactionsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const result = await accountController.getAccountTransactions({
+      requesterUserId: req.user?.userId,
+      accountId: req.params.id,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}

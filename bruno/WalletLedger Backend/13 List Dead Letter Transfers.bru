@@ -1,0 +1,15 @@
+meta {
+  name: 13 List Dead Letter Transfers
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/transfers/dead-letter
+  body: none
+  auth: none
+}
+
+headers {
+  x-api-key: {{apiKey}}
+}

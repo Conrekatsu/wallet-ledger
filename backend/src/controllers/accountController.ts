@@ -17,6 +17,11 @@ export interface AddFundsRequestInput {
   idempotencyKey?: string;
 }
 
+export interface GetAccountTransactionsRequestInput {
+  requesterUserId?: string;
+  accountId?: string;
+}
+
 const accounts = new AccountRepository();
 
 export async function createAccount(input: CreateAccountRequestInput) {
@@ -118,7 +123,7 @@ export async function addFunds(input: AddFundsRequestInput) {
       type: 'credit',
     });
 
-    const completed = await transferRepo.updateStatus(created.id, 'completed');
+    const completed = await transferRepo.markCompleted(created.id);
     if (!completed) {
       throw asAppError(500, 'Unable to update transaction status');
     }
@@ -135,4 +140,29 @@ export async function addFunds(input: AddFundsRequestInput) {
       replayed: false,
     };
   });
+}
+
+export async function getAccountTransactions(input: GetAccountTransactionsRequestInput) {
+  const { requesterUserId, accountId } = input;
+  if (!requesterUserId) {
+    throw asAppError(401, 'Unauthorized');
+  }
+  if (!accountId) {
+    throw asAppError(400, 'accountId required');
+  }
+
+  const account = await accounts.findById(accountId);
+  if (!account) {
+    throw asAppError(404, 'Account not found');
+  }
+  if (account.userId !== requesterUserId) {
+    throw asAppError(403, 'Forbidden');
+  }
+
+  const ledgerRepo = new LedgerRepository();
+  const transactions = await ledgerRepo.findAccountTransactions(accountId);
+  return {
+    accountId,
+    transactions,
+  };
 }

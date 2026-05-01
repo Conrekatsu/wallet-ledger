@@ -47,4 +47,17 @@ change backend tests to be more of an integration_test style instead of separate
 ### What I verified or modified
 - Reduced split per-layer test files and focused on request/response behavior.
 
+## Entry 4: Code Change Review
+
+### Prompts used
+```
+review code changes
+```
+
+### Where AI helped
+- Primarily reviewed code changes and highlighted potential issues or risks.
+
+### What I verified or modified
+- Validated the review feedback against the current code before applying any follow-up edits.
+
 

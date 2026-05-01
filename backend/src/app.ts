@@ -4,8 +4,10 @@ import authRoutes from './routes/auth';
 import transactionRoutes from './routes/transactions';
 import accountRoutes from './routes/accounts';
 import { logger } from './lib/logger';
+import { getMetricsSnapshot } from './lib/metrics';
 import { apiKeyAuth } from './middleware/apiKeyAuth';
 import { errorHandler } from './middleware/errorHandler';
+import { globalApiLimiter, strictWriteLimiter } from './middleware/rateLimit';
 
 const app = express();
 let isShuttingDown = false;
@@ -48,7 +50,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use('/api', globalApiLimiter);
+app.use('/api/accounts/:id/funds', strictWriteLimiter);
+app.use('/api/transfers', strictWriteLimiter);
+app.use('/api/transfers/:id/retry', strictWriteLimiter);
 app.use('/api', apiKeyAuth);
+app.get('/api/metrics', (_req, res) => {
+  res.json(getMetricsSnapshot());
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transfers', transactionRoutes);

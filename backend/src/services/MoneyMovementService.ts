@@ -5,8 +5,9 @@ import {
   TransactionRepository,
   withTransaction,
 } from '../dal';
-import { asAppError } from '../lib/appError';
-import { SerializedLedgerEntry } from '../models/LedgerEntry';
+import { AppError, asAppError } from '../lib/appError';
+import { incrementMetric } from '../lib/metrics';
+import { logger } from '../lib/logger';
 import { SerializedTransaction } from '../models/Transaction';
 
 export interface MoneyMovementInput {
@@ -17,17 +18,13 @@ export interface MoneyMovementInput {
   idempotencyKey: string;
 }
 
-export interface MoneyMovementResult {
+export interface EnqueueTransferResult {
   transaction: SerializedTransaction;
-  ledgerEntries: {
-    debit: SerializedLedgerEntry;
-    credit: SerializedLedgerEntry;
-  };
   replayed: boolean;
 }
 
 export class MoneyMovementService {
-  async moveMoney(input: MoneyMovementInput): Promise<MoneyMovementResult> {
+  async enqueueTransfer(input: MoneyMovementInput): Promise<EnqueueTransferResult> {
     if (input.fromAccountId === input.toAccountId) {
       throw asAppError(400, 'Source and destination accounts must differ');
     }
@@ -52,28 +49,25 @@ export class MoneyMovementService {
 
       const existing = await transactions.findByIdempotencyKey(input.idempotencyKey);
       if (existing) {
-        if (existing.status === 'pending' || existing.status === 'processing') {
-          throw asAppError(409, 'Idempotent transaction is still in progress');
-        }
-        if (existing.status === 'failed') {
-          throw asAppError(409, 'Idempotent transaction already failed');
+        if (existing.status === 'completed') {
+          const existingLedgerEntries = await ledger.findTransferEntriesByTransactionId(existing.id);
+          if (!existingLedgerEntries) {
+            throw asAppError(500, 'Existing transaction is missing ledger entries');
+          }
         }
 
-        const existingLedgerEntries = await ledger.findTransferEntriesByTransactionId(existing.id);
-        if (!existingLedgerEntries) {
-          throw asAppError(500, 'Existing transaction is missing ledger entries');
-        }
-        await auditLogs.recordTransfer({
+        await auditLogs.recordTransferEvent({
           actorUserId: input.requesterUserId,
           transferId: existing.id,
           fromAccountId: input.fromAccountId,
           toAccountId: input.toAccountId,
           amount: input.amount,
-          replayed: true,
+          action: 'TransferRequested',
+          status: existing.status,
         });
+
         return {
           transaction: existing,
-          ledgerEntries: existingLedgerEntries,
           replayed: true,
         };
       }
@@ -85,37 +79,113 @@ export class MoneyMovementService {
         idempotencyKey: input.idempotencyKey,
       });
 
-      await accounts.transferBalance(input.fromAccountId, input.toAccountId, input.amount);
-
-      const { debit, credit } = await ledger.createTransferEntries({
-        fromAccountId: input.fromAccountId,
-        toAccountId: input.toAccountId,
-        transactionId: created.id,
-        amount: input.amount,
-      });
-
-      const completed = await transactions.updateStatus(created.id, 'completed');
-      if (!completed) {
-        throw asAppError(500, 'Unable to update transaction status');
-      }
-
-      await auditLogs.recordTransfer({
+      await auditLogs.recordTransferEvent({
         actorUserId: input.requesterUserId,
-        transferId: completed.id,
-        fromAccountId: input.fromAccountId,
-        toAccountId: input.toAccountId,
-        amount: input.amount,
-        replayed: false,
+        transferId: created.id,
+        fromAccountId: created.fromAccountId,
+        toAccountId: created.toAccountId,
+        amount: created.amount,
+        action: 'TransferRequested',
+        status: 'pending',
+      });
+      incrementMetric('transferRequestedTotal');
+      logger.info('TransferRequested', {
+        transferId: created.id,
+        fromAccountId: created.fromAccountId,
+        toAccountId: created.toAccountId,
+        amount: created.amount,
+        status: 'pending',
       });
 
       return {
-        transaction: completed,
-        ledgerEntries: {
-          debit,
-          credit,
-        },
+        transaction: created,
         replayed: false,
       };
+    });
+  }
+
+  async processTransfer(transferId: string): Promise<SerializedTransaction> {
+    return withTransaction(async (client) => {
+      const transactions = new TransactionRepository(client);
+      const accounts = new AccountRepository(client);
+      const ledger = new LedgerRepository(client);
+      const auditLogs = new AuditLogRepository(client);
+
+      const transfer = await transactions.findByIdForUpdate(transferId);
+      if (!transfer) {
+        throw asAppError(404, 'Transfer not found');
+      }
+      if (transfer.status !== 'processing') {
+        throw asAppError(409, 'Transfer is not in processing state');
+      }
+
+      try {
+        await accounts.validateAndLockForTransfer(transfer.fromAccountId, transfer.toAccountId, transfer.amount);
+      } catch (error) {
+        if (error instanceof AppError && error.statusCode === 400 && error.message === 'Insufficient funds') {
+          const failed = await transactions.markFailed(transfer.id, 'Insufficient funds');
+          if (!failed) {
+            throw asAppError(500, 'Unable to mark transfer as failed');
+          }
+
+          await auditLogs.recordTransferEvent({
+            transferId: transfer.id,
+            fromAccountId: transfer.fromAccountId,
+            toAccountId: transfer.toAccountId,
+            amount: transfer.amount,
+            action: 'TransferFailed',
+            status: 'failed',
+            reason: 'Insufficient funds',
+          });
+          incrementMetric('transferFailedTotal');
+          logger.warn('TransferFailed', {
+            transferId: transfer.id,
+            fromAccountId: transfer.fromAccountId,
+            toAccountId: transfer.toAccountId,
+            amount: transfer.amount,
+            status: 'failed',
+            reason: 'Insufficient funds',
+          });
+
+          return failed;
+        }
+        throw error;
+      }
+
+      await ledger.createTransferEntries({
+        fromAccountId: transfer.fromAccountId,
+        toAccountId: transfer.toAccountId,
+        transactionId: transfer.id,
+        amount: transfer.amount,
+      });
+
+      const completed = await transactions.markCompleted(transfer.id);
+      if (!completed) {
+        throw asAppError(500, 'Unable to mark transfer as completed');
+      }
+
+      const fromAccount = await accounts.findById(transfer.fromAccountId);
+      if (fromAccount) {
+        await auditLogs.recordTransferEvent({
+          actorUserId: fromAccount.userId,
+          transferId: transfer.id,
+          fromAccountId: transfer.fromAccountId,
+          toAccountId: transfer.toAccountId,
+          amount: transfer.amount,
+          action: 'TransferCompleted',
+          status: 'completed',
+        });
+      }
+      incrementMetric('transferCompletedTotal');
+      logger.info('TransferCompleted', {
+        transferId: transfer.id,
+        fromAccountId: transfer.fromAccountId,
+        toAccountId: transfer.toAccountId,
+        amount: transfer.amount,
+        status: 'completed',
+      });
+
+      return completed;
     });
   }
 }

@@ -76,7 +76,7 @@ export async function user(userId: string) {
   return { user };
 }
 
-function signToken(userId: string | number, email: string): string {
+function signToken(userId: string, email: string): string {
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as jwt.SignOptions['expiresIn'];
   return jwt.sign(
     { userId, email },
