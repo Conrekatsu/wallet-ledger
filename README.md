@@ -1,6 +1,7 @@
-# HoxtonWealth
+# WalletLedger
 
 Full-stack web app with JWT auth. React + Express + PostgreSQL, fully containerized.
+(Ran inside windows WSL)
 
 ## Stack
 
@@ -13,11 +14,12 @@ Full-stack web app with JWT auth. React + Express + PostgreSQL, fully containeri
 
 ## Quick Start
 
-**Prerequisites:** Docker + Docker Compose
+**Prerequisites:** Docker + Docker Compose + make
 
 ```bash
 cp .env.example .env        # edit JWT_SECRET before production use
 npm install                 # install node_modules
+sudo apt install make       # install make
 make development-setup      # build images, start DB, run migrations, start all services
 ```
 

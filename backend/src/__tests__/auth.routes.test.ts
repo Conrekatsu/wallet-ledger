@@ -1,10 +1,11 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import app from '../../app';
-import pool from '../../db/pool';
+import crypto from 'crypto';
+import app from '../app';
+import pool from '../db/pool';
 
-jest.mock('../../db/pool', () => ({
+jest.mock('../db/pool', () => ({
   __esModule: true,
   default: { query: jest.fn() },
 }));
@@ -22,7 +23,13 @@ beforeEach(() => jest.clearAllMocks());
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 
 describe('POST /api/auth/register', () => {
-  const dbUser = { id: 1, email: 'user@test.com', name: 'Test', created_at: new Date().toISOString() };
+  const dbUser = {
+    id: 1,
+    email: 'user@test.com',
+    api_key_hash: 'hashed_api_key',
+    name: 'Test',
+    created_at: new Date().toISOString(),
+  };
 
   it('201 with token and user on success', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [dbUser] });
@@ -86,7 +93,14 @@ describe('POST /api/auth/register', () => {
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 
 describe('POST /api/auth/login', () => {
-  const dbUser = { id: 2, email: 'login@test.com', name: 'Login User', password: 'hashed-pw' };
+  const dbUser = {
+    id: 2,
+    email: 'login@test.com',
+    api_key_hash: 'hashed_api_key',
+    name: 'Login User',
+    password: 'hashed-pw',
+    created_at: new Date().toISOString(),
+  };
 
   it('200 with token and user (no password) on valid credentials', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [dbUser] });
@@ -145,21 +159,31 @@ describe('POST /api/auth/login', () => {
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 
 describe('GET /api/auth/me', () => {
+  const apiKey = 'wk_test_key';
+  const apiKeyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+
   function validAuthHeader(): string {
     const token = jwt.sign({ userId: 3, email: 'me@test.com' }, process.env.JWT_SECRET!);
     return `Bearer ${token}`;
   }
 
   it('200 with user for a valid token', async () => {
-    const dbUser = { id: 3, email: 'me@test.com', name: 'Me', created_at: new Date().toISOString() };
-    mockQuery.mockResolvedValueOnce({ rows: [dbUser] });
+    const authUser = { id: 3, email: 'me@test.com', name: 'Me', created_at: new Date().toISOString() };
+    mockQuery.mockResolvedValueOnce({ rows: [{ ...authUser }] });
+    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
 
     const res = await request(app)
       .get('/api/auth/me')
-      .set('Authorization', validAuthHeader());
+      .set('Authorization', validAuthHeader())
+      .set('x-api-key', apiKey);
 
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe('me@test.com');
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('WHERE api_key_hash = $1 OR api_key = $1'),
+      [apiKeyHash]
+    );
   });
 
   it('401 with no Authorization header', async () => {
@@ -168,18 +192,26 @@ describe('GET /api/auth/me', () => {
   });
 
   it('401 with an invalid token', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 3, email: 'me@test.com', name: 'Me', created_at: new Date().toISOString() }],
+    });
     const res = await request(app)
       .get('/api/auth/me')
-      .set('Authorization', 'Bearer bad.token.here');
+      .set('Authorization', 'Bearer bad.token.here')
+      .set('x-api-key', apiKey);
     expect(res.status).toBe(401);
   });
 
   it('404 when user has been deleted from DB', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 3, email: 'me@test.com', name: 'Me', created_at: new Date().toISOString() }],
+    });
     mockQuery.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
       .get('/api/auth/me')
-      .set('Authorization', validAuthHeader());
+      .set('Authorization', validAuthHeader())
+      .set('x-api-key', apiKey);
 
     expect(res.status).toBe(404);
   });
