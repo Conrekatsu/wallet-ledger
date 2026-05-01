@@ -12,6 +12,17 @@ export async function createAccountHandler(req: Request, res: Response, next: Ne
   }
 }
 
+export async function listAccountsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await accountController.listAccounts({
+      requesterUserId: req.user?.userId,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getAccountBalanceHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const result = await accountController.getAccountBalance({

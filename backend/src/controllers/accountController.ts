@@ -5,6 +5,10 @@ export interface CreateAccountRequestInput {
   requesterUserId?: string;
 }
 
+export interface ListAccountsRequestInput {
+  requesterUserId?: string;
+}
+
 export interface GetAccountBalanceRequestInput {
   requesterUserId?: string;
   accountId?: string;
@@ -31,6 +35,15 @@ export async function createAccount(input: CreateAccountRequestInput) {
 
   const account = await accounts.create({ userId: input.requesterUserId });
   return { account };
+}
+
+export async function listAccounts(input: ListAccountsRequestInput) {
+  if (!input.requesterUserId) {
+    throw asAppError(401, 'Unauthorized');
+  }
+
+  const accountsList = await accounts.findByUserId(input.requesterUserId);
+  return { accounts: accountsList };
 }
 
 export async function getAccountBalance(input: GetAccountBalanceRequestInput) {
