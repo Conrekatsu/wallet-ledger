@@ -78,6 +78,6 @@ describe('RegisterPage', () => {
 
   it('has a link to the login page', () => {
     renderPage();
-    expect(screen.getByRole('link', { name: /login/i })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: /sign in/i })).toHaveAttribute('href', '/login');
   });
 });

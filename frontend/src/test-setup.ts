@@ -6,7 +6,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 
 afterEach(() => {
   server.resetHandlers();
-  useAuthStore.setState({ token: null, user: null });
+  useAuthStore.setState({ token: null, user: null, apiKey: null, activeAccountId: null });
   localStorage.clear();
 });
 

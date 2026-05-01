@@ -21,6 +21,8 @@ describe('useAuthStore', () => {
 
     expect(useAuthStore.getState().token).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().apiKey).toBeNull();
+    expect(useAuthStore.getState().activeAccountId).toBeNull();
   });
 
   it('persists state to localStorage under key "hw-auth"', () => {

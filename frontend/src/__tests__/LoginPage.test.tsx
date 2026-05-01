@@ -19,7 +19,7 @@ describe('LoginPage', () => {
     renderPage();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('stores token and user in auth store on successful login', async () => {
@@ -28,7 +28,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'user@test.com');
     await user.type(screen.getByLabelText(/password/i), 'pass123');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
       expect(useAuthStore.getState().token).toBe('mock-token');
@@ -48,7 +48,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'wrong@test.com');
     await user.type(screen.getByLabelText(/password/i), 'wrongpass');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'a@b.com');
     await user.type(screen.getByLabelText(/password/i), 'pass');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/login failed/i)).toBeInTheDocument();
