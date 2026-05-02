@@ -42,6 +42,7 @@ cp .env.example .env
 make development-setup
 ```
 
+
 Services:
 
 | Service | URL |
@@ -151,6 +152,9 @@ In development, frontend `/api/*` requests are proxied to `http://backend:4000`.
 ## Testing
 
 ```bash
+# install node_modules
+npm install
+
 # all unit/integration tests
 npm test
 
