@@ -1,0 +1,83 @@
+#name: CI
+#
+#on:
+#  push:
+#    branches: [main, master]
+#  pull_request:
+#  workflow_dispatch:
+#
+#concurrency:
+#  group: ci-${{ github.workflow }}-${{ github.ref }}
+#  cancel-in-progress: true
+#
+#jobs:
+#  # ── Stage 1: verify (lint + tests, no build) ─────────────────────────────
+#  backend-test:
+#    name: '1 · Backend — test'
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: backend
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+#          cache: npm
+#          cache-dependency-path: backend/package-lock.json
+#      - run: npm ci
+#      - run: npm test
+#
+#  frontend-verify:
+#    name: '1 · Frontend — lint & test'
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: frontend
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+#          cache: npm
+#          cache-dependency-path: frontend/package-lock.json
+#      - run: npm ci
+#      - run: npm run lint
+#      - run: npm test
+#
+#  # ── Stage 2: compile / bundle ────────────────────────────────────────────
+#  build:
+#    name: '2 · Build'
+#    needs: [backend-test, frontend-verify]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+#          cache: npm
+#          cache-dependency-path: |
+#            backend/package-lock.json
+#            frontend/package-lock.json
+#      - name: Backend — compile
+#        working-directory: backend
+#        run: |
+#          npm ci
+#          npm run build
+#      - name: Frontend — compile & bundle
+#        working-directory: frontend
+#        run: |
+#          npm ci
+#          npm run build
+#
+#  # ── Stage 3: release artifacts (container images) ────────────────────────
+#  release:
+#    name: '3 · Release'
+#    needs: [build]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: docker/setup-buildx-action@v3
+#      - name: Build backend & frontend images
+#        run: docker compose build backend frontend
+#
