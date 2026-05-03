@@ -9,6 +9,7 @@ import { getMetricsSnapshot } from './lib/metrics';
 import { apiKeyAuth } from './middleware/apiKeyAuth';
 import { errorHandler } from './middleware/errorHandler';
 import { globalApiLimiter, strictWriteLimiter } from './middleware/rateLimit';
+import pool from './db/pool';
 
 const app = express();
 let isShuttingDown = false;
@@ -47,8 +48,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (_req, res) => {
+  const timestamp = new Date().toISOString();
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', database: 'ok', timestamp });
+  } catch (err) {
+    logger.error('Health check: database unreachable', { err });
+    res.status(503).json({ status: 'error', database: 'down', timestamp });
+  }
 });
 
 app.use('/api', globalApiLimiter);
